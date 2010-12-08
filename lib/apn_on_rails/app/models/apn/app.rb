@@ -37,28 +37,67 @@ class APN::App < APN::Base
     end
   end
   
-  def self.send_notifications_for_cert(the_cert, app_id)
-    # unless self.unsent_notifications.nil? || self.unsent_notifications.empty?
-      if (app_id == nil)
-        conditions = "app_id is null"
-      else 
-        conditions = ["app_id = ?", app_id]
-      end
-      begin
-        APN::Connection.open_for_delivery({:cert => the_cert}) do |conn, sock|
-          APN::Device.find_each(:conditions => conditions) do |dev|
-            dev.unsent_notifications.each do |noty|
-              conn.write(noty.message_for_sending)
-              noty.sent_at = Time.now
-              noty.save
-            end
+  def self.send_notifications_for_cert(the_cert, app_id, recursions = 0)
+    # return if self.unsent_notifications.nil? || self.unsent_notifications.empty?
+    raise ArgumentError, 'infinite recursion' if recursions > APN.Notification.count
+
+    failed_notification_id = nil
+    checked_for_apns_errors = false
+    sent_noty_ids = []
+
+    APN::Connection.open_for_delivery({:cert => the_cert}) do |conn, sock|
+      APN::Device.find_each(:conditions => {:app_id => app_id}) do |dev|
+        dev.unsent_notifications.each do |noty|
+
+          # We start out being optimistic that this noty will be sent.
+          # This also helps us to backtrack when we get an error and have to resend notys after the one that failed.
+          noty.update_attribute(:sent_at, Time.now)
+          sent_noty_ids << noty.id
+
+          begin
+            response = conn.write(noty.message_for_sending)
+          rescue => e
+            failed_notification_id = check_for_apns_error(conn)
+            checked_for_apns_errors = true
+            break
           end
+
         end
-      rescue
+
+        unless checked_for_apns_errors
+          failed_notification_id = check_for_apns_error(conn)
+        end
+
+        unless failed_notification_id.nil?
+          unsend_notifications_sent_after_failure(failed_notification_id, sent_noty_ids)
+          send_notifications_for_cert(the_cert, app_id, recursions + 1)
+        end
       end
-    # end   
+    end
   end
-  
+
+  def self.check_for_apns_error(conn)
+    response = nil
+    noty_id = nil
+
+    if IO.select([conn], nil, nil, 1)
+      response = conn.read(6)
+    end
+
+    unless response.nil?
+      command, status_code, noty_id = response.unpack('cci')
+      #logger.debug("APNS Error Response:  c #{command} sc #{status_code} i #{noty_id}")
+      # TODO: add an apns_error field to notifications, store the status code there.
+    end
+
+    noty_id
+  end
+
+  def self.unsend_notifications_sent_after_failure(failed_notification_id, sent_noty_ids)
+    to_resend = sent_noty_ids.from(sent_noty_ids.find_index(failed_notification_id) + 1)
+    APN::Notification.update_all('sent_at = NULL', ['id IN (?)', to_resend])
+  end
+
   def send_group_notifications
     if self.cert.nil? 
       raise APN::Errors::MissingCertificateError.new

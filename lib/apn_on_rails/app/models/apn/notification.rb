@@ -77,12 +77,14 @@ class APN::Notification < APN::Base
     self.apple_hash.to_json
   end
   
-  # Creates the binary message needed to send to Apple.
+  # Creates the binary message needed to send to Apple, in the 'enhanced notification format'.
+  #
+  # The format is documented at:
+  # http://developer.apple.com/library/ios/#documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/CommunicatingWIthAPS/CommunicatingWIthAPS.html
   def message_for_sending
     json = self.to_apple_json
-    message = "\0\0 #{self.device.to_hexa}\0#{json.length.chr}#{json}"
     raise APN::Errors::ExceededMessageSizeError.new(message) if message.size.to_i > 256
-    message
+    [1, self.id, EXPIRY_DAYS.days.from_now.to_i, 0, 32, self.device.token.delete(' '), 0, json.length, json].pack('ciiccH*cca*')
   end
   
   def self.send_notifications
