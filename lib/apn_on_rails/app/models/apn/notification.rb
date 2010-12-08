@@ -18,6 +18,10 @@ class APN::Notification < APN::Base
   include ::ActionView::Helpers::TextHelper
   extend ::ActionView::Helpers::TextHelper
   serialize :custom_properties
+
+  # TODO: add a expires_at timestamp field, do a before save that sets it to EXPIRY_DAYS from now.  Also, make
+  # EXPIRY_DAYS configurable
+  EXPIRY_DAYS = 30
   
   belongs_to :device, :class_name => 'APN::Device'
   has_one    :app,    :class_name => 'APN::App', :through => :device
