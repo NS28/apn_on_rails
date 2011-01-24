@@ -1,11 +1,11 @@
+require 'apn/connection'
+
 module APN
   # Module for talking to the Apple Feedback Service.
   # The service is meant to let you know when a device is no longer
   # registered to receive notifications for your application.
   module Feedback
-    
     class << self
-      
       # Returns an Array of APN::Device objects that
       # has received feedback from Apple. Each APN::Device will
       # have it's <tt>feedback_at</tt> accessor marked with the time
@@ -33,8 +33,6 @@ module APN
         ActiveSupport::Deprecation.warn("The method APN::Feedback.process_devices is deprecated.  Use APN::App.process_devices instead.")
         APN::App.process_devices
       end
-      
     end # class << self
-    
   end # Feedback
 end # APN

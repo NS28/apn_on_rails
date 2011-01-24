@@ -1,6 +1,5 @@
 class APN::PullNotification < APN::Base
   belongs_to :app, :class_name => 'APN::App'
-  
   validates_presence_of :app_id
 
   def self.latest_since(app_id, since_date=nil)
@@ -10,6 +9,6 @@ class APN::PullNotification < APN::Base
                    ["app_id = ?", app_id]
                  end
 
-    first(:order => "created_at DESC", :conditions => conditions)
+    where(conditions).order('created_at DESC').first
   end
 end

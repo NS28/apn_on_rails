@@ -1,5 +1,8 @@
+require 'apn/connection'
+require 'apn/feedback'
+require 'apn/errors'
+
 class APN::App < APN::Base
-  
   has_many :groups, :class_name => 'APN::Group', :dependent => :destroy
   has_many :devices, :class_name => 'APN::Device', :dependent => :destroy
   has_many :notifications, :through => :devices, :dependent => :destroy
@@ -8,7 +11,7 @@ class APN::App < APN::Base
   has_many :unsent_group_notifications, :through => :groups
     
   def cert
-    (RAILS_ENV == 'production' ? apn_prod_cert : apn_dev_cert)
+    (Rails.env == 'production' ? apn_prod_cert : apn_dev_cert)
   end
   
   # Opens a connection to the Apple APN server and attempts to batch deliver
@@ -19,18 +22,12 @@ class APN::App < APN::Base
   # so as to not be sent again.
   # 
   def send_notifications
-    if self.cert.nil?
-      raise APN::Errors::MissingCertificateError.new
-      return
-    end
-    APN::App.send_notifications_for_cert(self.cert, self.id)
+    raise APN::Errors::MissingCertificateError unless cert
+    APN::App.send_notifications_for_cert cert, id
   end
   
   def self.send_notifications
-    apps = APN::App.all 
-    apps.each do |app|
-      app.send_notifications
-    end
+    APN::App.find_each &:send_notifications
     global_cert = File.read(configatron.apn.cert)
     if global_cert
       send_notifications_for_cert(global_cert, nil)
@@ -133,10 +130,7 @@ class APN::App < APN::Base
   end
   
   def self.send_group_notifications
-    apps = APN::App.all
-    apps.each do |app|
-      app.send_group_notifications
-    end
+    APN::App.find_each &:send_group_notifications
   end          
   
   # Retrieves a list of APN::Device instnces from Apple using
@@ -158,10 +152,7 @@ class APN::App < APN::Base
   end # process_devices
   
   def self.process_devices
-    apps = APN::App.all
-    apps.each do |app|
-      app.process_devices
-    end
+    APN::App.find_each &:process_devices
     global_cert = File.read(configatron.apn.cert)
     if global_cert
       APN::App.process_devices_for_cert(global_cert)
@@ -179,5 +170,5 @@ class APN::App < APN::Base
       end
     end 
   end
-    
+
 end

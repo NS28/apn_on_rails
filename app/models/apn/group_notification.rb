@@ -75,5 +75,4 @@ class APN::GroupNotification < APN::Base
     raise APN::Errors::ExceededMessageSizeError.new(message) if message.size.to_i > 256
     message
   end
-  
 end # APN::Notification

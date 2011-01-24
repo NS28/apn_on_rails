@@ -1,8 +1,9 @@
+require 'socket'
+require 'openssl'
+
 module APN
   module Connection
-    
     class << self
-      
       # Yields up an SSL socket to write notifications to.
       # The connections are close automatically.
       # 
@@ -42,6 +43,7 @@ module APN
       end
       
       private
+
       def open(options = {}, &block) # :nodoc:
         options = {:cert => configatron.apn.cert,
                    :passphrase => configatron.apn.passphrase,
@@ -63,8 +65,6 @@ module APN
         ssl.close
         sock.close
       end
-      
     end
-    
   end # Connection
 end # APN
