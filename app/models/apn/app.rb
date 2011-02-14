@@ -14,36 +14,25 @@ class APN::App < APN::Base
     (Rails.env == 'production' ? apn_prod_cert : apn_dev_cert)
   end
   
-  # Opens a connection to the Apple APN server and attempts to batch deliver
-  # an Array of group notifications.
-  # 
-  # 
-  # As each APN::GroupNotification is sent the <tt>sent_at</tt> column will be timestamped,
-  # so as to not be sent again.
-  # 
-  def send_notifications
-    raise APN::Errors::MissingCertificateError unless cert
-    APN::App.send_notifications_for_cert cert, id
-  end
-  
   def self.send_notifications
     APN::App.find_each &:send_notifications
-    global_cert = File.read(configatron.apn.cert)
-    if global_cert
-      send_notifications_for_cert(global_cert, nil)
-    end
   end
   
-  def self.send_notifications_for_cert(the_cert, app_id, recursions = 0)
+  # Opens a connection to the Apple APN server and attempts to batch deliver unsent notifications (Group or Single)
+  # 
+  # As each notification is sent the <tt>sent_at</tt> column will be timestamped,
+  # so as to not be sent again.
+  # 
+  def send_notifications(recursions = 0)
     # return if self.unsent_notifications.nil? || self.unsent_notifications.empty?
-    raise ArgumentError, 'infinite recursion' if recursions > APN.Notification.count
+    raise ArgumentError, 'infinite recursion' if recursions > self.notifications.count
 
     failed_notification_id = nil
     checked_for_apns_errors = false
     sent_noty_ids = []
 
-    APN::Connection.open_for_delivery({:cert => the_cert}) do |conn, sock|
-      APN::Device.find_each(:conditions => {:app_id => app_id}) do |dev|
+    APN::Connection.open_for_delivery({:cert => cert}) do |conn, sock|
+      self.devices.find_each do |dev|
         dev.unsent_notifications.each do |noty|
 
           # We start out being optimistic that this noty will be sent.
@@ -67,13 +56,13 @@ class APN::App < APN::Base
 
         unless failed_notification_id.nil?
           unsend_notifications_sent_after_failure(failed_notification_id, sent_noty_ids)
-          send_notifications_for_cert(the_cert, app_id, recursions + 1)
+          send_notifications(recursions + 1)
         end
       end
     end
   end
 
-  def self.check_for_apns_error(conn)
+  def check_for_apns_error(conn)
     response = nil
     noty_id = nil
 
@@ -153,10 +142,6 @@ class APN::App < APN::Base
   
   def self.process_devices
     APN::App.find_each &:process_devices
-    global_cert = File.read(configatron.apn.cert)
-    if global_cert
-      APN::App.process_devices_for_cert(global_cert)
-    end
   end
   
   def self.process_devices_for_cert(the_cert)

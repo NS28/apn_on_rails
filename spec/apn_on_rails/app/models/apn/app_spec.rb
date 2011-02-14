@@ -180,21 +180,6 @@ describe APN::App do
     
   end
   
-  describe 'process_devices for global app' do 
-    
-    it 'should destroy devices that have a last_registered_at date that is before the feedback_at date that have no app' do 
-      device = DeviceFactory.create(:app_id => nil, :last_registered_at => 1.week.ago, :feedback_at => Time.now)
-      device.app_id = nil
-      device.last_registered_at = 1.week.ago
-      device.save
-      APN::Feedback.should_receive(:devices).and_return([device])
-      APN::App.should_receive(:all).and_return([])
-      lambda { 
-        APN::App.process_devices
-      }.should change(APN::Device, :count).by(-1)
-    end
-  end
-  
   describe 'nil cert when processing devices' do 
     
     it 'should raise an exception for processing devices for an app with no cert' do
