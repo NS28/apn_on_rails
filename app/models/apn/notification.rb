@@ -87,7 +87,7 @@ class APN::Notification < APN::Base
   # http://developer.apple.com/library/ios/#documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/CommunicatingWIthAPS/CommunicatingWIthAPS.html
   def message_for_sending
     json = self.to_apple_json
-    raise APN::Errors::ExceededMessageSizeError.new(message) if message.size.to_i > 256
+    raise APN::Errors::ExceededMessageSizeError.new(alert) if alert.size.to_i > 256
     [1, self.id, EXPIRY_DAYS.days.from_now.to_i, 0, 32, self.device.token.delete(' '), 0, json.length, json].pack('ciiccH*cca*')
   end
   
