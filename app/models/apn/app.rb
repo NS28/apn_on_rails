@@ -79,7 +79,7 @@ class APN::App < APN::Base
     noty_id
   end
 
-  def self.unsend_notifications_sent_after_failure(failed_notification_id, sent_noty_ids)
+  def unsend_notifications_sent_after_failure(failed_notification_id, sent_noty_ids)
     to_resend = sent_noty_ids.from(sent_noty_ids.find_index(failed_notification_id) + 1)
     APN::Notification.update_all('sent_at = NULL', ['id IN (?)', to_resend])
   end
