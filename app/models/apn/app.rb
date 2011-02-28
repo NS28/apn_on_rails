@@ -9,9 +9,48 @@ class APN::App < APN::Base
   has_many :unsent_notifications, :through => :devices
   has_many :group_notifications, :through => :groups
   has_many :unsent_group_notifications, :through => :groups
+
+  @forced_server = nil
     
+  def use_production!
+    @forced_server = 'production'
+  end
+
+  def use_sandbox!
+    @forced_server = 'sandbox'
+  end
+
   def cert
-    (Rails.env == 'production' ? apn_prod_cert : apn_dev_cert)
+    case @forced_server
+      when 'production'
+        apn_prod_cert
+      when 'sandbox'
+        apn_dev_cert
+      else
+        (Rails.env == 'production' ? apn_prod_cert : apn_dev_cert)
+    end
+  end
+
+  def gateway_server
+    case @forced_server
+      when 'production'
+        configatron.apn.production.gateway.host
+      when 'sandbox'
+        configatron.apn.development.gateway.host
+      else
+        configatron.apn.host
+    end
+  end
+
+  def feedback_server
+    case @forced_server
+      when 'production'
+        configatron.apn.production.feedback.host
+      when 'sandbox'
+        configatron.apn.development.feedback.host
+      else
+        configatron.apn.feedback.host
+    end
   end
   
   def self.send_notifications
@@ -31,7 +70,7 @@ class APN::App < APN::Base
     checked_for_apns_errors = false
     sent_noty_ids = []
 
-    APN::Connection.open_for_delivery({:cert => cert}) do |conn, sock|
+    APN::Connection.open_for_delivery({:cert => cert, :host => gateway_server}) do |conn, sock|
       self.devices.find_each do |dev|
         dev.unsent_notifications.each do |noty|
 
@@ -90,7 +129,7 @@ class APN::App < APN::Base
       return
     end
     unless self.unsent_group_notifications.nil? || self.unsent_group_notifications.empty? 
-      APN::Connection.open_for_delivery({:cert => self.cert}) do |conn, sock|
+      APN::Connection.open_for_delivery({:cert => cert, :host => gateway_server}) do |conn, sock|
         unsent_group_notifications.each do |gnoty|
           gnoty.devices.find_each do |device|
             conn.write(gnoty.message_for_sending(device))
@@ -108,7 +147,7 @@ class APN::App < APN::Base
       return
     end
     unless gnoty.nil?
-      APN::Connection.open_for_delivery({:cert => self.cert}) do |conn, sock|
+      APN::Connection.open_for_delivery({:cert => cert, :host => gateway_server}) do |conn, sock|
         gnoty.devices.find_each do |device|
           conn.write(gnoty.message_for_sending(device))
         end
@@ -137,16 +176,16 @@ class APN::App < APN::Base
       raise APN::Errors::MissingCertificateError.new
       return
     end
-    APN::App.process_devices_for_cert(self.cert)
+    APN::App.process_devices_for_cert(cert, feedback_server)
   end # process_devices
   
   def self.process_devices
     APN::App.find_each &:process_devices
   end
   
-  def self.process_devices_for_cert(the_cert)
+  def self.process_devices_for_cert(the_cert, the_host)
     puts "in APN::App.process_devices_for_cert"
-    APN::Feedback.devices(the_cert).each do |device|
+    APN::Feedback.devices(the_cert, the_host).each do |device|
       if device.last_registered_at < device.feedback_at
         puts "device #{device.id} -> #{device.last_registered_at} < #{device.feedback_at}"
         device.destroy

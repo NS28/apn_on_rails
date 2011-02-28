@@ -10,18 +10,18 @@ if defined? Rails
         configatron.apn.feedback.set_default(:passphrase, configatron.apn.passphrase)
         configatron.apn.feedback.set_default(:port, 2196)
 
+        configatron.apn.production.gateway.set_default(:host, 'gateway.push.apple.com')
+        configatron.apn.production.feedback.set_default(:host, 'feedback.push.apple.com')
+
+        configatron.apn.development.gateway.set_default(:host, 'gateway.sandbox.push.apple.com')
+        configatron.apn.development.feedback.set_default(:host, 'feedback.sandbox.push.apple.com')
+
         if Rails.env == 'production'
-          configatron.apn.set_default(:host, 'gateway.push.apple.com')
-          configatron.apn.set_default(:cert, File.join(Rails.root, 'config', 'apple_push_notification_production.pem'))
-          
-          configatron.apn.feedback.set_default(:host, 'feedback.push.apple.com')
-          configatron.apn.feedback.set_default(:cert, configatron.apn.cert)
+          configatron.apn.set_default(:host, configatron.apn.production.host)
+          configatron.apn.feedback.set_default(:host, configatron.apn.production.feedback.host)
         else
-          configatron.apn.set_default(:host, 'gateway.sandbox.push.apple.com')
-          configatron.apn.set_default(:cert, File.join(Rails.root, 'config', 'apple_push_notification_development.pem'))
-          
-          configatron.apn.feedback.set_default(:host, 'feedback.sandbox.push.apple.com')
-          configatron.apn.feedback.set_default(:cert, configatron.apn.cert)
+          configatron.apn.set_default(:host, configatron.apn.development.host)
+          configatron.apn.feedback.set_default(:host, configatron.apn.development.feedback.host)
         end
 
         %w{models controllers helpers}.each do |dir| 
