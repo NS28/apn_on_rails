@@ -112,7 +112,7 @@ class APN::App < APN::Base
     unless response.nil?
       command, status_code, noty_id = response.unpack('cci')
       #logger.debug("APNS Error Response:  c #{command} sc #{status_code} i #{noty_id}")
-      noty = self.notifications.find(noty_id)
+      noty = self.notifications.find(noty_id, :readonly => false)
       noty.update_attribute(:error_response_status_code, status_code)
     end
 
