@@ -112,7 +112,8 @@ class APN::App < APN::Base
     unless response.nil?
       command, status_code, noty_id = response.unpack('cci')
       #logger.debug("APNS Error Response:  c #{command} sc #{status_code} i #{noty_id}")
-      # TODO: add an apns_error field to notifications, store the status code there.
+      noty = self.notifications.find(noty_id)
+      noty.update_attribute(:error_response_status_code, status_code)
     end
 
     noty_id
@@ -184,15 +185,17 @@ class APN::App < APN::Base
   end
   
   def self.process_devices_for_cert(the_cert, the_host)
-    puts "in APN::App.process_devices_for_cert"
+    logger.debug "in APN::App.process_devices_for_cert"
+    destroyed_devices = []
     APN::Feedback.devices(the_cert, the_host).each do |device|
       if device.last_registered_at < device.feedback_at
-        puts "device #{device.id} -> #{device.last_registered_at} < #{device.feedback_at}"
-        device.destroy
+        logger.debug "device #{device.id} -> #{device.last_registered_at} < #{device.feedback_at}"
+        destroyed_devices < device.destroy
       else 
-        puts "device #{device.id} -> #{device.last_registered_at} not < #{device.feedback_at}"
+        logger.debug "device #{device.id} -> #{device.last_registered_at} not < #{device.feedback_at}"
       end
     end 
+    destroyed_devices
   end
 
 end

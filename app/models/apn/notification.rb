@@ -19,6 +19,19 @@ class APN::Notification < APN::Base
   extend ::ActionView::Helpers::TextHelper
   serialize :custom_properties
 
+  ERROR_RESPONSE_STATUS_CODES = {
+    0 => :no_errors_encountered,
+    1 => :processing_error,
+    2 => :missing_device_token,
+    3 => :missing_topic,
+    4 => :missing_payload,
+    5 => :invalid_token_size,
+    6 => :invalid_topic_size,
+    7 => :invalid_payload_size,
+    8 => :invalid_token,
+    255 => :unknown
+  }
+
   # TODO: add a expires_at timestamp field, do a before save that sets it to EXPIRY_DAYS from now.  Also, make
   # EXPIRY_DAYS configurable
   EXPIRY_DAYS = 30
@@ -26,6 +39,19 @@ class APN::Notification < APN::Base
   belongs_to :device, :class_name => 'APN::Device'
   has_one    :app,    :class_name => 'APN::App', :through => :device
   
+  # returns a more or less human readable version of the error_response_status_code
+  def status
+    if error_response_status_code?
+      if ERROR_RESPONSE_STATUS_CODES.keys.include?(error_response_status_code) 
+        ERROR_RESPONSE_STATUS_CODES[error_response_status_code]
+      else
+        :other
+      end
+    else
+      :ok
+    end
+  end
+
   # Stores the text alert message you want to send to the device.
   # 
   # If the message is over 150 characters long it will get truncated
