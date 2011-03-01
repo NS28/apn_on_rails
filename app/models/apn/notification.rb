@@ -40,7 +40,7 @@ class APN::Notification < APN::Base
   has_one    :app,    :class_name => 'APN::App', :through => :device
   
   # returns a more or less human readable version of the error_response_status_code
-  def status
+  def apn_status
     if error_response_status_code?
       if ERROR_RESPONSE_STATUS_CODES.keys.include?(error_response_status_code) 
         ERROR_RESPONSE_STATUS_CODES[error_response_status_code]
