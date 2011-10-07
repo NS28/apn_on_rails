@@ -20,7 +20,7 @@ if defined? Rails
           configatron.apn.set_default(:host, configatron.apn.production.host)
           configatron.apn.feedback.set_default(:host, configatron.apn.production.feedback.host)
         else
-          configatron.apn.set_default(:host, configatron.apn.development.host)
+          configatron.apn.set_default(:host, configatron.apn.development.gateway.host)
           configatron.apn.feedback.set_default(:host, configatron.apn.development.feedback.host)
         end
 
