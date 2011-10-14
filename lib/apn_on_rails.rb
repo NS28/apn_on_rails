@@ -17,7 +17,7 @@ if defined? Rails
         configatron.apn.development.feedback.set_default(:host, 'feedback.sandbox.push.apple.com')
 
         if Rails.env == 'production'
-          configatron.apn.set_default(:host, configatron.apn.production.host)
+          configatron.apn.set_default(:host, configatron.apn.production.gateway.host)
           configatron.apn.feedback.set_default(:host, configatron.apn.production.feedback.host)
         else
           configatron.apn.set_default(:host, configatron.apn.development.gateway.host)
