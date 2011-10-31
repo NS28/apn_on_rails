@@ -38,6 +38,8 @@ class APN::Notification < APN::Base
   
   belongs_to :device, :class_name => 'APN::Device'
   has_one    :app,    :class_name => 'APN::App', :through => :device
+
+  scope :unsent, where(:sent_at => nil)
   
   # returns a more or less human readable version of the error_response_status_code
   def apn_status

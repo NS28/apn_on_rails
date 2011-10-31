@@ -1,4 +1,4 @@
-# Represents an iPhone (or other APN enabled device).
+# Represents an iOS device that supports APN.
 # An APN::Device can have many APN::Notification.
 # 
 # In order for the APN::Feedback system to work properly you *MUST*
@@ -12,7 +12,8 @@ class APN::Device < APN::Base
   
   belongs_to :app, :class_name => 'APN::App'
   has_many :notifications, :class_name => 'APN::Notification'
-  has_many :unsent_notifications, :class_name => 'APN::Notification', :conditions => 'sent_at is null'
+  has_many :sent_notifications, :class_name => 'APN::Notification', :conditions => 'sent_at IS NOT NULL', :dependent => :nullify
+  has_many :unsent_notifications, :class_name => 'APN::Notification', :conditions => 'sent_at IS NULL', :dependent => :destroy
   
   validates_uniqueness_of :token, :scope => :app_id
   validates_format_of :token, :with => /^[a-z0-9]{8}\s[a-z0-9]{8}\s[a-z0-9]{8}\s[a-z0-9]{8}\s[a-z0-9]{8}\s[a-z0-9]{8}\s[a-z0-9]{8}\s[a-z0-9]{8}$/
