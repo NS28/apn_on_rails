@@ -69,34 +69,30 @@ class APN::App < APN::Base
     failed_notification_id = nil
     checked_for_apns_errors = false
     sent_noty_ids = []
-
     APN::Connection.open_for_delivery({:cert => cert, :host => gateway_server}) do |conn, sock|
-      self.devices.find_each do |dev|
-        dev.unsent_notifications.each do |noty|
+      unsent_notifications.each do |noty|
+        # We start out being optimistic that this noty will be sent.
+        # This also helps us to backtrack when we get an error and have to resend notys after the one that failed.
+        noty.update_attribute(:sent_at, Time.now)
+        sent_noty_ids << noty.id
 
-          # We start out being optimistic that this noty will be sent.
-          # This also helps us to backtrack when we get an error and have to resend notys after the one that failed.
-          noty.update_attribute(:sent_at, Time.now)
-          sent_noty_ids << noty.id
-
-          begin
-            response = conn.write(noty.message_for_sending)
-          rescue => e
-            failed_notification_id = check_for_apns_error(conn)
-            checked_for_apns_errors = true
-            break
-          end
-
-        end
-
-        unless checked_for_apns_errors
+        begin
+          response = conn.write(noty.message_for_sending)
+        rescue => e
           failed_notification_id = check_for_apns_error(conn)
+          checked_for_apns_errors = true
+          break
         end
 
-        unless failed_notification_id.nil?
-          unsend_notifications_sent_after_failure(failed_notification_id, sent_noty_ids)
-          send_notifications(recursions + 1)
-        end
+      end
+
+      unless checked_for_apns_errors
+        failed_notification_id = check_for_apns_error(conn)
+      end
+
+      unless failed_notification_id.nil?
+        unsend_notifications_sent_after_failure(failed_notification_id, sent_noty_ids)
+        send_notifications(recursions + 1)
       end
     end
   end
