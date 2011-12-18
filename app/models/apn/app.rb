@@ -62,15 +62,18 @@ class APN::App < APN::Base
   # As each notification is sent the <tt>sent_at</tt> column will be timestamped,
   # so as to not be sent again.
   # 
-  def send_notifications(recursions = 0)
-    # return if self.unsent_notifications.nil? || self.unsent_notifications.empty?
-    raise ArgumentError, 'infinite recursion' if recursions > self.notifications.count
+  def send_notifications(recursions = 0, max_attempts = nil)
+    # TEMP - setting max_attempts to 3, just in case this code is wrong
+    max_attempts = 3
+
+    max_attempts ||= unsent_notifications(true).count
+    raise ArgumentError, 'too many recursions' if recursions > max_attempts
 
     failed_notification_id = nil
     checked_for_apns_errors = false
     sent_noty_ids = []
     APN::Connection.open_for_delivery({:cert => cert, :host => gateway_server}) do |conn, sock|
-      unsent_notifications.each do |noty|
+      unsent_notifications(true).find_each do |noty|
         # We start out being optimistic that this noty will be sent.
         # This also helps us to backtrack when we get an error and have to resend notys after the one that failed.
         noty.update_attribute(:sent_at, Time.now)
@@ -92,7 +95,7 @@ class APN::App < APN::Base
 
       unless failed_notification_id.nil?
         unsend_notifications_sent_after_failure(failed_notification_id, sent_noty_ids)
-        send_notifications(recursions + 1)
+        send_notifications(recursions + 1, max_attempts)
       end
     end
   end
