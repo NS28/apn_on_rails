@@ -11,6 +11,8 @@ class APN::App < APN::Base
   has_many :group_notifications, :through => :groups
   has_many :unsent_group_notifications, :through => :groups
 
+  attr_accessible  :apn_dev_cert, :apn_prod_cert
+
   @forced_server = nil
     
   def use_production!
@@ -64,9 +66,6 @@ class APN::App < APN::Base
   # so as to not be sent again.
   # 
   def send_notifications(recursions = 0, max_attempts = nil)
-    # TEMP - setting max_attempts to 3, just in case this code is wrong
-    max_attempts = 3
-
     max_attempts ||= unsent_notifications(true).count
     raise ArgumentError, 'too many recursions' if recursions > max_attempts
 

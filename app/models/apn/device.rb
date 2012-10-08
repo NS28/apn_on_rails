@@ -9,6 +9,7 @@
 # Example:
 #   Device.create(:token => '5gxadhy6 6zmtxfl6 5zpbcxmw ez3w7ksf qscpr55t trknkzap 7yyt45sc g6jrw7qz')
 class APN::Device < APN::Base
+  attr_accessible :app, :app_id, :token, :last_registered_at, :sandbox
   
   belongs_to :app, :class_name => 'APN::App'
   has_many :notifications, :class_name => 'APN::Notification'

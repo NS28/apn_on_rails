@@ -19,6 +19,8 @@ class APN::Notification < APN::Base
   extend ::ActionView::Helpers::TextHelper
   serialize :custom_properties
 
+  attr_accessible :device, :device_id, :sound, :alert, :badge, :sent_at, :custom_properties, :error_response_status_code
+
   ERROR_RESPONSE_STATUS_CODES = {
     0 => :no_errors_encountered,
     1 => :processing_error,
