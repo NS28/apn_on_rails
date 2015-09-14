@@ -19,7 +19,7 @@ class APN::Notification < APN::Base
   extend ::ActionView::Helpers::TextHelper
   serialize :custom_properties
 
-  attr_accessible :device, :device_id, :sound, :alert, :badge, :sent_at, :custom_properties, :error_response_status_code
+  attr_accessible :device, :device_id, :sound, :alert, :badge, :sent_at, :custom_properties, :error_response_status_code, category
 
   ERROR_RESPONSE_STATUS_CODES = {
     0 => :no_errors_encountered,
@@ -90,6 +90,10 @@ class APN::Notification < APN::Base
     if self.sound
       result['aps']['sound'] = self.sound if self.sound.is_a? String
       result['aps']['sound'] = "1.aiff" if self.sound.is_a?(TrueClass)
+    end
+    if self.category
+      result['aps']['category'] = self.category if self.category.is_a? String
+      result['aps']['category'] = "snoCountry" if self.category.is_a?(TrueClass)
     end
     if self.custom_properties
       self.custom_properties.each do |key,value|
